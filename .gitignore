@@ -1,0 +1,9 @@
+build
+include
+Lib
+Scripts
+chromedriver.exe
+*.bak
+*.spec
+pyvenv.cfg
+.idea/
