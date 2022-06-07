@@ -8,6 +8,19 @@ import os
 import socket
 import re
 
+
+is_debug = False
+
+class Logging:
+
+    @staticmethod
+    def error(message):
+        print('\033[31m' + message + '\033[0m')
+
+    @staticmethod
+    def success(message):
+        print('\033[32m' + message + '\033[0m')
+
 proxies = {
     'http' : "127.0.0.1:8080"
 }
@@ -51,15 +64,14 @@ def modechanger(dev_conf):
         url = f'http://{dev_conf["IP"]}/cgi-bin/setmode.asp'
         headers = CaseInsensitiveDict()
         headers['Cookie'] = f"SESSIONID={dev_conf['SESSIONID']};UID={dev_conf['USERID']};PSW={dev_conf['PASSWORD']}"
-        setmode = requests.post(url, data=change_to, headers=headers, proxies=proxies)
-
+        setmode = requests.post(url, data=change_to, headers=headers, proxies=proxies) if is_debug else requests.post(url, data=change_to, headers=headers)
         if setmode.status_code == 200:
-            print('\033[32m' + "Operation Success" + '\033[0m')
-            print('\033[32m' + f"Current Mode : {mode}" + '\033[0m')
-            print('\033[32m' + "Device Rebooting........" + '\033[0m')
-            time.sleep(5)
+            Logging.success("Operation Success")
+            Logging.success(f"Current mode set to  {mode}")
+            Logging.success( "Device Rebooting........")
+            time.sleep(10)
         else:
-            print('\033[31m' + "Something went worng.Please try again" + '\033[0m')
+            Logging.error("Something went worng.Please try again")
             time.sleep(5)
 
 
@@ -100,18 +112,19 @@ class Manu():
                 else:
                     eval(manu_args.get(arg))
             except:
-                print('\033[31m' + "Invalid Option. Please Choose a correct option" + '\033[0m')
+                Logging.error("Invalid Option. Please Choose a correct option")
 
 
 
 if __name__ == "__main__":
+
     pattern = re.compile(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})')
     banner()
     while True:
         print('\n')
         devip = str(input("Enter Device IP [192.168.1.1]: ")) or '192.168.1.1'
         if not pattern.search(devip):
-            print('\033[31m' + 'Please provide valid ip address' + '\033[0m')
+            Logging.error('Please provide valid ip address')
             continue
         try:
             s = socket.socket()
@@ -123,17 +136,17 @@ if __name__ == "__main__":
             sid = requests.get(f"http://{devip}", timeout=5).cookies['SESSIONID']
             dev_conf = {'IP': devip, 'MAC': dev_mac, 'SESSIONID': sid, 'USERID': uname, 'PASSWORD': pwd}
         except KeyError:
-            print('\033[31m' + 'Device Not Support' + '\033[0m')
-            print('\033[31m' + 'Make sure the device is GENEXIS Platinum 4410' + '\033[0m')
+            Logging.error('Device Not Support')
+            Logging.error('Make sure the device is GENEXIS Platinum 4410')
             continue
         except Timeout:
-            print('\033[31m' + "Timeout. Couldn't connect to device" + '\033[0m')
+            Logging.error("Timeout. Couldn't connect to device")
             continue
         except TimeoutError:
-            print('\033[31m' + f"Couldn't connect to {devip}. Please connect to a network" + '\033[0m')
+            Logging.error(f"Couldn't connect to {devip}. Please connect to a network")
             continue
         except Exception as ex:
-            print('\033[31m' + f"Couldn't connect to {devip}. Please connect to a network" + '\033[0m')
+            Logging.error(f"Couldn't connect to {devip}. Please connect to a network")
             continue
         else:
             break

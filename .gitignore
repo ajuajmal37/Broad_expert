@@ -7,3 +7,4 @@ chromedriver.exe
 *.spec
 pyvenv.cfg
 .idea/
+__pycache__/
