@@ -35,8 +35,12 @@ def banner():
     ▀█▀ █░█ █▀▀   █▄▄ █▀█ █▀█ ▄▀█ █▀▄   █▀▀ ▀▄▀ █▀█ █▀▀ █▀█ ▀█▀
     ░█░ █▀█ ██▄   █▄█ █▀▄ █▄█ █▀█ █▄▀   ██▄ █░█ █▀▀ ██▄ █▀▄ ░█░  From Ajtech
     \t\tFor Born Network Engineers 
-    \n\tDeveloper : Ajmal CP \t  Version : 1.0.0b \t Release Date : 06-06-2022
-    \n''')
+    \n\tDeveloper : Ajmal CP \t  Version : 1.0.2 \t Release Date : 11-06-2022''')
+    try:
+        Logging.success(f"\tConnected to {devip}")
+        print("")
+    except:
+        pass
 
 
 def getDevMac(devip):
@@ -50,7 +54,7 @@ def getDevMac(devip):
         return mac_upper
 
 
-def modechanger(dev_conf):
+def modechanger():
     while True:
         banner()
         print('Genexis Platinum 4410 Pon Mode Change')
@@ -81,24 +85,42 @@ def modechanger(dev_conf):
 
 
         if change_to != None:
-            url = f'http://{dev_conf["IP"]}/cgi-bin/setmode.asp'
-            headers = CaseInsensitiveDict()
-            headers['Cookie'] = f"SESSIONID={dev_conf['SESSIONID']};UID={dev_conf['USERID']};PSW={dev_conf['PASSWORD']}"
-            setmode = requests.post(url, data=change_to, headers=headers,
-                                    proxies=proxies) if is_debug else requests.post(
-                url, data=change_to, headers=headers)
-            if setmode.status_code == 200:
-                Logging.success("Operation Success")
-                Logging.success(f"Current mode set to  {mode}")
-                Logging.success("Device Rebooting........")
-            else:
-                Logging.error("Something went worng.Please try again")
-
-            print('')
-            if str(input("Press any key for try again or [0] Back  : ")) == "0":
-                break
-            else:
+            try:
+                sid = requests.get(f"http://{devip}", timeout=5).cookies['SESSIONID']
+                dev_conf = {'IP': devip, 'MAC': dev_mac, 'SESSIONID': sid, 'USERID': uname, 'PASSWORD': pwd}
+                url = f'http://{dev_conf["IP"]}/cgi-bin/setmode.asp'
+                headers = CaseInsensitiveDict()
+                headers[
+                    'Cookie'] = f"SESSIONID={dev_conf['SESSIONID']};UID={dev_conf['USERID']};PSW={dev_conf['PASSWORD']}"
+                setmode = requests.post(url, data=change_to, headers=headers,
+                                        proxies=proxies) if is_debug else requests.post(
+                    url, data=change_to, headers=headers)
+            except KeyError:
+                Logging.error('Device Not Support')
+                Logging.error('Make sure the device is GENEXIS Platinum 4410')
                 continue
+            except Timeout:
+                Logging.error("Timeout. Couldn't connect to device")
+                continue
+            except TimeoutError:
+                Logging.error(f"Couldn't connect to {devip}. Please connect to a network")
+                continue
+            except Exception as ex:
+                Logging.error(f"Couldn't connect to {devip}. Please connect to a network")
+                continue
+            else:
+                if setmode.status_code == 200:
+                    Logging.success("Operation Success")
+                    Logging.success(f"Current mode set to  {mode}")
+                    Logging.success("Device Rebooting........")
+                else:
+                    Logging.error("Something went worng.Please try again")
+
+                print('')
+                if str(input("Press any key for try again or [0] Back  : ")) == "0":
+                    break
+                else:
+                    continue
 
 
 
@@ -121,7 +143,7 @@ class Manu():
 
         manu_args = {
             '0': 'exit(0)',
-            '1': f'modechanger({dev_conf})',
+            '1': f'modechanger()',
             '2': f'getGatewayMac(devip)'
         }
         while True:
@@ -163,8 +185,7 @@ if __name__ == "__main__":
             dev_mac = getDevMac(devip)
             uname = str(input("Enter Device Username [admin]: ")) or 'admin'
             pwd = str(input("Enter password [Default] : ")) or dev_mac
-            sid = requests.get(f"http://{devip}", timeout=5).cookies['SESSIONID']
-            dev_conf = {'IP': devip, 'MAC': dev_mac, 'SESSIONID': sid, 'USERID': uname, 'PASSWORD': pwd}
+
         except KeyError:
             Logging.error('Device Not Support')
             Logging.error('Make sure the device is GENEXIS Platinum 4410')
