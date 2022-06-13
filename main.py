@@ -35,7 +35,7 @@ def banner():
     ▀█▀ █░█ █▀▀   █▄▄ █▀█ █▀█ ▄▀█ █▀▄   █▀▀ ▀▄▀ █▀█ █▀▀ █▀█ ▀█▀
     ░█░ █▀█ ██▄   █▄█ █▀▄ █▄█ █▀█ █▄▀   ██▄ █░█ █▀▀ ██▄ █▀▄ ░█░  From Ajtech
     \t\tFor Born Network Engineers 
-    \n\tDeveloper : Ajmal CP \t  Version : 1.0.2 \t Release Date : 11-06-2022''')
+    \n\tDeveloper : Ajmal CP \t  Version : 1.0.3 \t Release Date : 13-06-2022''')
     try:
         Logging.success(f"\tConnected to {devip}")
         print("")
@@ -98,16 +98,28 @@ def modechanger():
             except KeyError:
                 Logging.error('Device Not Support')
                 Logging.error('Make sure the device is GENEXIS Platinum 4410')
-                continue
+                if str(input("Press any key for try again or [0] Back  : ")) == "0":
+                    break
+                else:
+                    continue
             except Timeout:
                 Logging.error("Timeout. Couldn't connect to device")
-                continue
+                if str(input("Press any key for try again or [0] Back  : ")) == "0":
+                    break
+                else:
+                    continue
             except TimeoutError:
                 Logging.error(f"Couldn't connect to {devip}. Please connect to a network")
-                continue
+                if str(input("Press any key for try again or [0] Back  : ")) == "0":
+                    break
+                else:
+                    continue
             except Exception as ex:
                 Logging.error(f"Couldn't connect to {devip}. Please connect to a network")
-                continue
+                if str(input("Press any key for try again or [0] Back  : ")) == "0":
+                    break
+                else:
+                    continue
             else:
                 if setmode.status_code == 200:
                     Logging.success("Operation Success")
