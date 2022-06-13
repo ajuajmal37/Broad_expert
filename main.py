@@ -183,9 +183,10 @@ if __name__ == "__main__":
             s.settimeout(3)
             s.connect((devip, 80))
             dev_mac = getDevMac(devip)
-            uname = str(input("Enter Device Username [admin]: ")) or 'admin'
-            pwd = str(input("Enter password [Default] : ")) or dev_mac
-
+            # uname = str(input("Enter Device Username [admin]: ")) or 'admin'
+            # pwd = str(input("Enter password [Default] : ")) or dev_mac
+            uname = 'admin'
+            pwd = dev_mac
         except KeyError:
             Logging.error('Device Not Support')
             Logging.error('Make sure the device is GENEXIS Platinum 4410')
