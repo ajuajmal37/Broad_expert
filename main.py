@@ -60,7 +60,7 @@ def req(method, url, header=None):
     #     print(ex)
     # else:
     if response.status_code == 200:
-        return response.json()
+        return response
     else:
         Logging.error("Not found 404")
 
@@ -71,7 +71,7 @@ def banner():
     ▀█▀ █░█ █▀▀   █▄▄ █▀█ █▀█ ▄▀█ █▀▄   █▀▀ ▀▄▀ █▀█ █▀▀ █▀█ ▀█▀
     ░█░ █▀█ ██▄   █▄█ █▀▄ █▄█ █▀█ █▄▀   ██▄ █░█ █▀▀ ██▄ █▀▄ ░█░  From Ajtech
     \t\tFor Born Network Engineers 
-    \n\tDeveloper : Ajmal CP \t  Version : 1.0.3 \t Release Date : 13-06-2022''')
+    \n\tDeveloper : Ajmal CP \t  Version : 1.1.0b \t Release Date : 22-06-2022''')
     print('\n')
 
 
@@ -87,40 +87,11 @@ def getDevMac(devip):
 
 
 def modechanger():
-    pattern = re.compile(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})')
-    banner()
     try:
-        while True:
-            print('\n')
-            devip = str(input("Enter ONT IP [192.168.1.1]: ")) or '192.168.1.1'
-            if not pattern.search(devip):
-                Logging.error('Please provide valid ip address')
-                continue
-            try:
-                s = socket.socket()
-                s.settimeout(3)
-                s.connect((devip, 80))
-                dev_mac = getDevMac(devip)
-                # uname = str(input("Enter Device Username [admin]: ")) or 'admin'
-                # pwd = str(input("Enter password [Default] : ")) or dev_mac
-                uname = 'admin'
-                pwd = dev_mac
-            except KeyError:
-                Logging.error('Device Not Support')
-                Logging.error('Make sure the device is GENEXIS Platinum 4410')
-                continue
-            except Timeout:
-                Logging.error("Timeout. Couldn't connect to device")
-                continue
-            except TimeoutError:
-                Logging.error(f"Couldn't connect to {devip}. Please connect to a network")
-                continue
-            except Exception as ex:
-                Logging.error(f"Couldn't connect to {devip}. Please connect to a network")
-                continue
-            else:
-                break
-
+        devip = ip_in()
+        uname = "admin"
+        dev_mac = getDevMac(devip)
+        pwd = dev_mac
         while True:
             banner()
             print('Genexis Platinum 4410 Pon Mode Change')
@@ -150,6 +121,7 @@ def modechanger():
 
             if change_to != None:
                 try:
+
                     sid = requests.get(f"http://{devip}", timeout=5).cookies['SESSIONID']
                     dev_conf = {'IP': devip, 'MAC': dev_mac, 'SESSIONID': sid, 'USERID': uname, 'PASSWORD': pwd}
                     url = f'http://{dev_conf["IP"]}/cgi-bin/setmode.asp'
@@ -199,6 +171,37 @@ def modechanger():
                         continue
     except KeyboardInterrupt:
         pass
+    except Exception:
+        pass
+
+
+def ip_in():
+    pattern = re.compile(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})')
+    try:
+        while True:
+            print('\n')
+            devip = str(input("Enter ONT IP [192.168.1.1]: ")) or '192.168.1.1'
+            if not pattern.search(devip):
+                Logging.error('Please provide valid ip address')
+                continue
+            try:
+                s = socket.socket()
+                s.settimeout(3)
+                s.connect((devip, 80))
+            except Timeout:
+                Logging.error("Timeout. Couldn't connect to device")
+                continue
+            except TimeoutError:
+                Logging.error(f"Couldn't connect to {devip}. Device is offline")
+                continue
+            except Exception as ex:
+                Logging.error(f"Couldn't connect to {devip}.  Device is offline")
+                continue
+            else:
+                return devip
+
+    except KeyboardInterrupt:
+        pass
 
 
 def getGatewayMac():
@@ -209,17 +212,20 @@ def getGatewayMac():
     try:
         gateways = netifaces.gateways()
         default_gateway = gateways['default'][netifaces.AF_INET][0]
-        gateway_mac = getDevMac(default_gateway)
+        gateway_mac = getDevMac(default_gateway).strip()
+        vendor = req('get', f'http://api.macvendors.com/{gateway_mac[slice(6)]}').text
     except IndexError:
         Logging.error("Request couldn't complete")
         Logging.error("There are no default gateway yet")
-
+    except requests.exceptions.ProxyError:
+        Logging.success(f'Default Gateway MAC : {gateway_mac}')
+        Logging.success(f'Default Gateway     : {default_gateway}')
     except Exception as ex:
-        # print(ex)
-        # print(type(ex))
+        print(ex)
+        print(type(ex))
         Logging.error("Something went wrong")
     else:
-        Logging.success(f'Default Gateway MAC : {gateway_mac}')
+        Logging.success(f'Default Gateway MAC : {gateway_mac}\t{vendor}')
         Logging.success(f'Default Gateway     : {default_gateway}')
     print('\n')
     try:
@@ -236,19 +242,19 @@ def get_pub_ip():
     print('')
 
     try:
-       api_server = 'http://ip-api.com/json/'
-       result = req(method='get', url=api_server)
+        api_server = 'http://ip-api.com/json/'
+        result = req(method='get', url=api_server).json()
 
-       if result['status'] == "success":
-           Logging.success(f"PUBLIC IPV4 : {result['query']}")
-           Logging.success(f'ISP: {result["isp"] if result["isp"] != "" else None}')
-           Logging.success(f'AS: {result["as"] if result["as"] != "" else None}')
-           Logging.success(f'CITY: {result["city"] if result["city"] != "" else None}')
-           Logging.success(f'REGION: {result["regionName"] if result["regionName"] != "" else None}')
-           Logging.success(f'COUNTRY: {result["country"] if result["country"] != "" else None}')
-           Logging.success(f'ZIP: {result["zip"] if result["zip"] != "" else None}')
-       else:
-           Logging.error("Something went wrong. Try again")
+        if result['status'] == "success":
+            Logging.success(f"PUBLIC IPV4 : {result['query']}")
+            Logging.success(f'ISP: {result["isp"] if result["isp"] != "" else None}')
+            Logging.success(f'AS: {result["as"] if result["as"] != "" else None}')
+            Logging.success(f'CITY: {result["city"] if result["city"] != "" else None}')
+            Logging.success(f'REGION: {result["regionName"] if result["regionName"] != "" else None}')
+            Logging.success(f'COUNTRY: {result["country"] if result["country"] != "" else None}')
+            Logging.success(f'ZIP: {result["zip"] if result["zip"] != "" else None}')
+        else:
+            Logging.error("Something went wrong. Try again")
     except requests.exceptions.ConnectionError as ex:
         Logging.error("Process couldn't complete")
         Logging.error("Please check you internet connection")
