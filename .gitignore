@@ -9,3 +9,9 @@ pyvenv.cfg
 .idea/
 __pycache__/
 the_broad_expert_trash
+.gitignore
+test.py
+dist/
+include/
+main.spec
+main_app.spec
