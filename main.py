@@ -10,6 +10,8 @@ import netifaces
 import requests
 from requests.exceptions import Timeout
 from requests.structures import CaseInsensitiveDict
+import speedtest
+
 
 clear = lambda: os.system('cls' if os.name == 'nt' else 'clear')
 
@@ -30,7 +32,7 @@ class Loader:
 
     def __init__(self, message):
         self.run_msg = message
-        self.interval = 0.1
+        self.interval = 0.2
         self.is_done = False
         self._thread = Thread(target=self._loop,daemon=True)
 
@@ -39,7 +41,7 @@ class Loader:
         for i in cycle(animation):
             if self.is_done:
                 break
-            print(f"\r\033[32m {self.run_msg} {i} \033[0m", flush=True, end="")
+            print(f"\r\033[32m{self.run_msg} {i} \033[0m", flush=True, end="")
             time.sleep(self.interval)
 
     def start(self):
@@ -50,7 +52,7 @@ class Loader:
         self.is_done = True
         cols = get_terminal_size((80, 20)).columns
         print("\r" + " " * cols, end="", flush=True)
-        print(f"\r\033[32m {message} \033[0m", flush=True)
+        print(f"\r\033[32m{message} \033[0m", flush=True)
 
     def __exit__(self, exc_type, exc_value, tb):
         self.stop()
@@ -74,7 +76,7 @@ class Utils:
         ▀█▀ █░█ █▀▀   █▄▄ █▀█ █▀█ ▄▀█ █▀▄   █▀▀ ▀▄▀ █▀█ █▀▀ █▀█ ▀█▀
         ░█░ █▀█ ██▄   █▄█ █▀▄ █▄█ █▀█ █▄▀   ██▄ █░█ █▀▀ ██▄ █▀▄ ░█░  From Ajtech
         \t\tFor Born Network Engineers 
-        \n\tDeveloper : Ajmal CP \t  Version : 1.2.1.250622.1241''')
+        \n\tDeveloper : Ajmal CP \t  Version : 1.3.0.280622.2242''')
         print('\n')
 
     @staticmethod
@@ -339,10 +341,12 @@ class Module():
 
 
         except NoConnectionException as ex:
+            loader.stop()
             Logging.error("Process couldn't complete")
             Logging.error(str(ex))
 
         except Exception as ex:
+            loader.stop()
             Logging.error("Process couldn't complete")
             Logging.error("Something went wrong")
             # print(ex)
@@ -370,9 +374,11 @@ class Module():
             result = Utils.req(method='get', url=api_server).json()
 
         except requests.exceptions.ConnectionError as ex:
+            loader.stop()
             Logging.error("Process couldn't complete")
             Logging.error("Please check you internet connection")
         except Exception as ex:
+            loader.stop()
             Logging.error("Process couldn't complete")
             Logging.error("Something went wrong")
             # print(ex)
@@ -397,6 +403,48 @@ class Module():
         except KeyboardInterrupt:
             pass
 
+    @staticmethod
+    def speedtest():
+        global loader
+        Utils.banner()
+        print('Speed Test')
+        print('----------')
+        print('')
+        try:
+            sp = speedtest.Speedtest()
+            loader = Loader('Downloading  ')
+            loader.start()
+            download = sp.download()
+            loader.stop(f'Download {download/1048576:.2f} Mbps' )
+            loader = Loader("Uploading ")
+            loader.start()
+            upload = sp.upload()
+            loader.stop(f'Upload {upload/1048576:.2f} Mbps')
+            loader = Loader("Result ")
+            loader.start()
+            result = sp.results
+
+        except Exception as ex:
+            loader.stop()
+            Logging.error("Process couldn't complete")
+            Logging.error("Something went wrong")
+            print(ex)
+            print(type(ex))
+        else:
+            loader.stop()
+            Logging.success(f"Server : {result.server['sponsor']}")
+            Logging.success(f"Latency : {result.ping:.0f} ms")
+            print('')
+            Logging.success(f"IP : {result.client['ip']}")
+            Logging.success(f"ISP : {result.client['isp']}")
+
+        print('\n')
+        try:
+            while input("Press Enter to Back"):
+                break
+        except KeyboardInterrupt:
+            pass
+
 
 class Manu():
 
@@ -408,7 +456,8 @@ class Manu():
             '1': f'Module.getGatewayMac()',
             '2': f'Module.get_pub_ip()',
             '3': f'Module.modechanger()',
-            '4': f'Module.mtu_checker()'
+            '4': f'Module.mtu_checker()',
+            '5': f'Module.speedtest()'
         }
         try:
             while True:
@@ -421,7 +470,8 @@ class Manu():
 [1] Display Gateway Mac     - Display gateway mac address
 [2] What is my ip           - Display your public address
 [3] Mode changer            - Genexis Platinum 4410 Pon Mode Change
-[4] MTU Checker            -  Find Perfect MTU Value 
+[4] MTU Checker             - Find Perfect MTU Value 
+[5] Speedtest               - Speedtest powerded by ookla
 [0] Exit                    - Exit
                             ''')
 
