@@ -15,3 +15,5 @@ dist/
 include/
 main.spec
 main_app.spec
+bin/
+lib/

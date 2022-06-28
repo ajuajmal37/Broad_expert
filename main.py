@@ -30,12 +30,12 @@ class Loader:
 
     def __init__(self, message):
         self.run_msg = message
-        self.interval = 0.5
+        self.interval = 0.1
         self.is_done = False
-        self._thread = Thread(target=self._loop)
+        self._thread = Thread(target=self._loop,daemon=True)
 
     def _loop(self):
-        animation = ["|", "/", "-", "\\"]
+        animation = ["|", "/", "-", "\\"] if os.name == 'nt' else ["⢿", "⣻", "⣽", "⣾", "⣷", "⣯", "⣟", "⡿"]
         for i in cycle(animation):
             if self.is_done:
                 break
@@ -74,7 +74,7 @@ class Utils:
         ▀█▀ █░█ █▀▀   █▄▄ █▀█ █▀█ ▄▀█ █▀▄   █▀▀ ▀▄▀ █▀█ █▀▀ █▀█ ▀█▀
         ░█░ █▀█ ██▄   █▄█ █▀▄ █▄█ █▀█ █▄▀   ██▄ █░█ █▀▀ ██▄ █▀▄ ░█░  From Ajtech
         \t\tFor Born Network Engineers 
-        \n\tDeveloper : Ajmal CP \t  Version : 1.2.0b.250622.1241''')
+        \n\tDeveloper : Ajmal CP \t  Version : 1.2.1.250622.1241''')
         print('\n')
 
     @staticmethod
@@ -106,10 +106,17 @@ class Utils:
     @staticmethod
     def getDevMac(devip):
         try:
-            arp = subprocess.run(['arp', '-a', devip], capture_output=True, shell=True)
-            a = str(arp.stdout)
-            mac = a.split('\\r')[3].split('     ')[2].split('-')
-            mac_upper = "".join(mac).upper()
+            if os.name == 'nt':
+                arp = subprocess.run(['arp', '-a', devip], capture_output=True, shell=True)
+                a = str(arp.stdout)
+                mac = a.split('\\r')[3].split('     ')[2].split('-')
+                mac_upper = "".join(mac).upper()
+            else:
+                arp = os.popen(f'arp -a {devip}').read()
+                gateway = arp.split('\n')
+                mac = gateway[0].split(' ')[3].split(':')
+                mac_upper = "".join(mac).upper()
+
 
         except Exception:
             raise Exception("Couldn't find gateway address")
@@ -163,7 +170,6 @@ class Module():
                 raise Exception("Their is no default gateway configured yet")
 
             default_gateway = gateways['default'][netifaces.AF_INET][0]
-
             gateway_mac = Utils.getDevMac(default_gateway).strip()
             vendor = Utils.req('get', f'http://api.macvendors.com/{gateway_mac[slice(6)]}')
             if vendor:
@@ -172,15 +178,23 @@ class Module():
                 vendor = ''
 
         except IndexError as ex:
+            loader.stop()
             Logging.error("Request couldn't complete")
             Logging.error("There are no default gateway yet")
         except requests.exceptions.ProxyError:
+            loader.stop()
+            Logging.success(f'Default Gateway MAC : {gateway_mac}')
+            Logging.success(f'Default Gateway     : {default_gateway}')
+        except requests.exceptions.ConnectionError:
+            loader.stop()
             Logging.success(f'Default Gateway MAC : {gateway_mac}')
             Logging.success(f'Default Gateway     : {default_gateway}')
         except NoFound:
+            loader.stop()
             Logging.success(f'Default Gateway MAC : {gateway_mac}')
             Logging.success(f'Default Gateway     : {default_gateway}')
         except Exception as ex:
+            loader.stop()
             # print(ex)
             # print(type(ex))
             Logging.error(str(ex))
@@ -295,9 +309,9 @@ class Module():
         try:
             host = '8.8.8.8'
             if os.name == 'nt':
-                res = os.system(f"ping  {host} > NUL")
+                res = os.system(f"ping  -n 1 {host} > NUL")
             else:
-                res = os.system(f"ping  {host}>/dev/null 2>&1")
+                res = os.system(f"ping  -c 1  {host}>/dev/null 2>&1")
 
             if res == 1:
                 raise NoConnectionException("No internet connection")
@@ -307,12 +321,13 @@ class Module():
             increment = 200
 
             while True:
+
                 base_mtu += increment
                 if os.name == 'nt':
                     res = os.system(f"ping -f -n 1 -l {str(base_mtu)} {host} > NUL")
 
                 else:
-                    res = os.system(f"ping -f -c 1 -l {str(base_mtu)} {host}>/dev/null 2>&1")
+                    res = os.system(f"ping -c 1 -M do -s  {str(base_mtu)}  {host}>/dev/null 2>&1")
                 time.sleep(1)
                 if res == 0:
                     continue
@@ -420,8 +435,8 @@ class Manu():
 
 
                 except Exception as ex:
-                    print(ex)
-                    print(type(ex))
+                    # print(ex)
+                    # print(type(ex))
                     Logging.error("Invalid Option. Please Choose a correct option")
         except KeyboardInterrupt:
             pass
