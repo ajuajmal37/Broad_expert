@@ -424,6 +424,10 @@ class Module():
             loader.start()
             result = sp.results
 
+        except speedtest.ConfigRetrievalError:
+            Logging.error("Process couldn't complete")
+            Logging.error("Please check you internet connection")
+
         except Exception as ex:
             loader.stop()
             Logging.error("Process couldn't complete")
