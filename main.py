@@ -76,7 +76,7 @@ class Utils:
         ▀█▀ █░█ █▀▀   █▄▄ █▀█ █▀█ ▄▀█ █▀▄   █▀▀ ▀▄▀ █▀█ █▀▀ █▀█ ▀█▀
         ░█░ █▀█ ██▄   █▄█ █▀▄ █▄█ █▀█ █▄▀   ██▄ █░█ █▀▀ ██▄ █▀▄ ░█░  From Ajtech
         \t\tFor Born Network Engineers 
-        \n\tDeveloper : Ajmal CP \t  Version : 1.3.0.280622.2242''')
+        \n\tDeveloper : Ajmal CP \t  Version : 1.3.1.300622.1304''')
         print('\n')
 
     @staticmethod
@@ -405,13 +405,14 @@ class Module():
 
     @staticmethod
     def speedtest():
-        global loader
+        loader = Loader("Please wait ")
+        loader.start()
         Utils.banner()
         print('Speed Test')
         print('----------')
-        print('')
         try:
             sp = speedtest.Speedtest()
+            loader.stop()
             loader = Loader('Downloading  ')
             loader.start()
             download = sp.download()
@@ -432,11 +433,11 @@ class Module():
             loader.stop()
             Logging.error("Process couldn't complete")
             Logging.error("Something went wrong")
-            print(ex)
-            print(type(ex))
+            # print(ex)
+            # print(type(ex))
         else:
             loader.stop()
-            Logging.success(f"Server : {result.server['sponsor']}")
+            Logging.success(f"Server : {result.server['sponsor']} {result.server['name']} {result.server['country']}")
             Logging.success(f"Latency : {result.ping:.0f} ms")
             print('')
             Logging.success(f"IP : {result.client['ip']}")
