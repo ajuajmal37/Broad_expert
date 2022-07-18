@@ -12,7 +12,6 @@ from requests.exceptions import Timeout
 from requests.structures import CaseInsensitiveDict
 import speedtest
 
-
 clear = lambda: os.system('cls' if os.name == 'nt' else 'clear')
 
 is_debug = False
@@ -21,8 +20,10 @@ proxies = {
     'http': "127.0.0.1:8080"
 }
 
+
 class NoConnectionException(Exception):
     pass
+
 
 class NoFound(Exception):
     pass
@@ -34,7 +35,7 @@ class Loader:
         self.run_msg = message
         self.interval = 0.2
         self.is_done = False
-        self._thread = Thread(target=self._loop,daemon=True)
+        self._thread = Thread(target=self._loop, daemon=True)
 
     def _loop(self):
         animation = ["|", "/", "-", "\\"] if os.name == 'nt' else ["⢿", "⣻", "⣽", "⣾", "⣷", "⣯", "⣟", "⡿"]
@@ -48,11 +49,14 @@ class Loader:
         self._thread.start()
         return self
 
-    def stop(self, message=''):
+    def stop(self, type='s', message=''):
         self.is_done = True
         cols = get_terminal_size((80, 20)).columns
         print("\r" + " " * cols, end="", flush=True)
-        print(f"\r\033[32m{message} \033[0m", flush=True)
+        if type == 's':
+            print(f"\r\033[32m{message} \033[0m", flush=True)
+        elif type == 'e':
+            print(f"\r\033[31m{message} \033[0m", flush=True)
 
     def __exit__(self, exc_type, exc_value, tb):
         self.stop()
@@ -416,16 +420,17 @@ class Module():
             loader = Loader('Downloading  ')
             loader.start()
             download = sp.download()
-            loader.stop(f'Download {download/1048576:.2f} Mbps' )
+            loader.stop(f'Download {download / 1048576:.2f} Mbps')
             loader = Loader("Uploading ")
             loader.start()
             upload = sp.upload()
-            loader.stop(f'Upload {upload/1048576:.2f} Mbps')
+            loader.stop(f'Upload {upload / 1048576:.2f} Mbps')
             loader = Loader("Result ")
             loader.start()
             result = sp.results
 
         except speedtest.ConfigRetrievalError:
+            loader.stop()
             Logging.error("Process couldn't complete")
             Logging.error("Please check you internet connection")
 
@@ -450,6 +455,63 @@ class Module():
         except KeyboardInterrupt:
             pass
 
+    @staticmethod
+    def port_checker():
+        pattern = re.compile(r'(\b25[0-5]|\b2[0-4]\d|\b[01]?\d\d?)(\.(25[0-5]|2[0-4]\d|[01]?\d\d?)){3}')
+        port_pattern = re.compile(
+            r'^((6553[0-5])|(655[0-2]\d)|(65[0-4]\d{2})|(6[0-4]\d{3})|([1-5]\d{4})|([0-5]{0,5})|(\d{1,4}))$')
+        # domain_pattern = re.compile(r'^(([a-z\d]\-*[a-z\d]*){1,63}\.?){1,255}$')
+        try:
+            Utils.banner()
+            while True:
+
+                ip_and_port = str(input("Enter remote address:port : "))
+
+                if not ip_and_port or ':' not in ip_and_port:
+                    Logging.error('Please provide a destination ip and port correct format')
+                    Logging.error('Example : 127.0.0.1:8080')
+                    continue
+                else:
+                    dst_ip = ip_and_port.split(':')[0]
+                    dst_port = ip_and_port.split(':')[1]
+
+                    if not port_pattern.search(dst_port):
+                        Logging.error('Invalid port number')
+                        continue
+                try:
+                    loader = Loader("Please wait ")
+                    loader.start()
+                    s = socket.socket()
+                    s.settimeout(5)
+                    s.connect((dst_ip, int(dst_port)))
+                    src_ip, src_port = s.getsockname()
+                    rmt_ip, rmt_port = s.getpeername()
+                    s.close()
+                except TimeoutError:
+                    loader.stop('e',f"Port {dst_port} closed")
+                    continue
+                except ConnectionRefusedError:
+                    loader.stop('e',f"Port {dst_port} closed")
+                except socket.gaierror:
+                    loader.stop('e', "Invalid remote address")
+                except Exception as ex:
+                    # print(ex)
+                    # print(type(ex))
+                    loader.stop('e', "Something went wrong")
+                else:
+
+                    loader.stop('s',f"Port {rmt_port} open")
+                    Logging.success(f"Source address  : {src_ip}")
+                    Logging.success(f"Remote address  : {rmt_ip} {dst_ip if not pattern.search(dst_ip) else ''} ")
+
+                print('')
+                if str(input("Press any key for try again or [0] Back  : ")) == "0":
+                    break
+                else:
+                    continue
+        except KeyboardInterrupt:
+            pass
+
 
 class Manu():
 
@@ -462,7 +524,8 @@ class Manu():
             '2': f'Module.get_pub_ip()',
             '3': f'Module.modechanger()',
             '4': f'Module.mtu_checker()',
-            '5': f'Module.speedtest()'
+            '5': f'Module.speedtest()',
+            '6': f'Module.port_checker()',
         }
         try:
             while True:
@@ -472,11 +535,12 @@ class Manu():
                     print('---------')
                     print('')
                     print('''
-[1] Display Gateway Mac     - Display gateway mac address
+[1] Display Gateway info    - Display gateway mac and ip address
 [2] What is my ip           - Display your public address
 [3] Mode changer            - Genexis Platinum 4410 Pon Mode Change
 [4] MTU Checker             - Find Perfect MTU Value 
 [5] Speedtest               - Speedtest powerded by ookla
+[6] Port Checker            - TCP Port checker
 [0] Exit                    - Exit
                             ''')
 
