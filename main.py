@@ -80,7 +80,7 @@ class Utils:
         ▀█▀ █░█ █▀▀   █▄▄ █▀█ █▀█ ▄▀█ █▀▄   █▀▀ ▀▄▀ █▀█ █▀▀ █▀█ ▀█▀
         ░█░ █▀█ ██▄   █▄█ █▀▄ █▄█ █▀█ █▄▀   ██▄ █░█ █▀▀ ██▄ █▀▄ ░█░  From Ajtech
         \t\tFor Born Network Engineers 
-        \n\tDeveloper : Ajmal CP \t  Version : 1.4.0.190722.1156''')
+        \n\tDeveloper : Ajmal CP \t  Version : 1.5.0.190722.2025''')
         print('\n')
 
     @staticmethod
@@ -495,9 +495,10 @@ class Module():
                     loader.stop('e', "Process couldn't complete")
                     loader.stop('e', "Something went wrong")
                 else:
+                    loader.stop('s', f"Port {rmt_port} is open")
                     Logging.success(f"Source address  : {src_ip}")
                     Logging.success(f"Remote address  : {rmt_ip} {dst_ip if not pattern.search(dst_ip) else ''} ")
-                    loader.stop('s', f"Port {rmt_port} is open")
+
 
                 print('')
                 if str(input("Press any key for try again or [0] Back  : ")) == "0":
@@ -507,6 +508,56 @@ class Module():
         except KeyboardInterrupt:
             pass
 
+    @staticmethod
+    def mac_vendor_lookup():
+        while True:
+            Utils.banner()
+            print('MAC Vendor Lookup')
+            print('-----------------')
+            print('')
+            try:
+
+                while True:
+                    hex_re = re.compile(r'(?:[0-9a-fA-F]:?){6,12}')
+                    cols = get_terminal_size((80, 20)).columns
+                    mac = input("Enter MAC : ")
+                    if not len(mac) >= 6:
+                        Logging.error('please provide minimum 6 characters')
+                    elif not hex_re.search(mac):
+                        Logging.error('Please provide a valid mac address')
+                    else:
+                        break
+
+                loader = Loader('Please wait ')
+                loader.start()
+                vendor = Utils.req('get', f'http://api.macvendors.com/{mac}')
+                if vendor:
+                    vendor = vendor.text
+                else:
+                    vendor = "Couldn't find vendor"
+
+                loader.stop()
+            except requests.exceptions.ProxyError:
+                loader.stop('e', "Request couldn't complete")
+            except requests.exceptions.ConnectionError as ex:
+                loader.stop('e', "Please check your internet connection")
+            except NoFound  as ex:
+                loader.stop('e', "Something went wrong")
+            except Exception as ex:
+                loader.stop('e',str(ex))
+                # print(ex)
+                # print(type(ex))
+            else:
+                loader.stop('s', f'{vendor}')
+                # Logging.success()
+            print('\n')
+            try:
+                if str(input("Press enter for try again or [0] Back")) == "0":
+                    break
+                else:
+                    continue
+            except KeyboardInterrupt:
+                pass
 
 class Manu():
 
@@ -521,6 +572,7 @@ class Manu():
             '4': f'Module.mtu_checker()',
             '5': f'Module.speedtest()',
             '6': f'Module.port_checker()',
+            '7': f'Module.mac_vendor_lookup()'
         }
         try:
             while True:
@@ -530,12 +582,13 @@ class Manu():
                     print('---------')
                     print('')
                     print('''
-[1] Display Gateway info    - Display gateway mac and ip address
+[1] Display Gateway info    - Display gateway mac and ip address     
 [2] What is my ip           - Display your public address
 [3] Mode changer            - Genexis Platinum 4410 Pon Mode Change
 [4] MTU Checker             - Find Perfect MTU Value 
 [5] Speedtest               - Speedtest powerded by ookla
 [6] Port Checker            - TCP Port checker
+[7] MAC Vendor Lookup       - Mac address vendor lookup
 [0] Exit                    - Exit
                             ''')
 
