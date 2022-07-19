@@ -80,7 +80,7 @@ class Utils:
         ▀█▀ █░█ █▀▀   █▄▄ █▀█ █▀█ ▄▀█ █▀▄   █▀▀ ▀▄▀ █▀█ █▀▀ █▀█ ▀█▀
         ░█░ █▀█ ██▄   █▄█ █▀▄ █▄█ █▀█ █▄▀   ██▄ █░█ █▀▀ ██▄ █▀▄ ░█░  From Ajtech
         \t\tFor Born Network Engineers 
-        \n\tDeveloper : Ajmal CP \t  Version : 1.3.1.300622.1304''')
+        \n\tDeveloper : Ajmal CP \t  Version : 1.4.0.190722.1156''')
         print('\n')
 
     @staticmethod
@@ -327,37 +327,37 @@ class Module():
             increment = 200
 
             while True:
-
+                if base_mtu >= 1600:
+                    raise Exception("Something went wrong")
                 base_mtu += increment
                 if os.name == 'nt':
                     res = os.system(f"ping -f -n 1 -l {str(base_mtu)} {host} > NUL")
-
                 else:
                     res = os.system(f"ping -c 1 -M do -s  {str(base_mtu)}  {host}>/dev/null 2>&1")
                 time.sleep(1)
                 if res == 0:
                     continue
                 else:
+
                     base_mtu -= increment
                     increment = round(increment / 2)
                     if increment < 1:
                         break
 
 
+
         except NoConnectionException as ex:
-            loader.stop()
-            Logging.error("Process couldn't complete")
+            loader.stop('e', "Process couldn't complete")
             Logging.error(str(ex))
 
         except Exception as ex:
-            loader.stop()
-            Logging.error("Process couldn't complete")
+            loader.stop('e', "Process couldn't complete")
             Logging.error("Something went wrong")
             # print(ex)
             # print(type(ex))
 
         else:
-            loader.stop(f"Best MTU {base_mtu + 28}")
+            loader.stop('s', f"Best MTU {base_mtu + 28}")
             print('\n')
         try:
             while input("Press Enter to Back"):
@@ -409,51 +409,46 @@ class Module():
 
     @staticmethod
     def speedtest():
-        loader = Loader("Please wait ")
-        loader.start()
         Utils.banner()
         print('Speed Test')
         print('----------')
         try:
-            sp = speedtest.Speedtest()
-            loader.stop()
+
             loader = Loader('Downloading  ')
             loader.start()
+            sp = speedtest.Speedtest()
             download = sp.download()
-            loader.stop(f'Download {download / 1048576:.2f} Mbps')
+            loader.stop('s', f'Download {download / 1048576:.2f} Mbps')
             loader = Loader("Uploading ")
             loader.start()
             upload = sp.upload()
-            loader.stop(f'Upload {upload / 1048576:.2f} Mbps')
+            loader.stop('s', f'Upload {upload / 1048576:.2f} Mbps')
             loader = Loader("Result ")
             loader.start()
             result = sp.results
 
         except speedtest.ConfigRetrievalError:
-            loader.stop()
-            Logging.error("Process couldn't complete")
+            loader.stop('e', "Process couldn't complete")
             Logging.error("Please check you internet connection")
 
         except Exception as ex:
-            loader.stop()
-            Logging.error("Process couldn't complete")
+            loader.stop('e', "Process couldn't complete")
             Logging.error("Something went wrong")
             # print(ex)
             # print(type(ex))
         else:
-            loader.stop()
-            Logging.success(f"Server : {result.server['sponsor']} {result.server['name']} {result.server['country']}")
+            loader.stop('s', f"Server : {result.server['sponsor']} {result.server['name']} {result.server['country']}")
             Logging.success(f"Latency : {result.ping:.0f} ms")
             print('')
             Logging.success(f"IP : {result.client['ip']}")
             Logging.success(f"ISP : {result.client['isp']}")
-
-        print('\n')
-        try:
-            while input("Press Enter to Back"):
-                break
-        except KeyboardInterrupt:
-            pass
+        finally:
+            print('\n')
+            try:
+                while input("Press Enter to Back"):
+                    break
+            except KeyboardInterrupt:
+                pass
 
     @staticmethod
     def port_checker():
@@ -488,21 +483,21 @@ class Module():
                     rmt_ip, rmt_port = s.getpeername()
                     s.close()
                 except TimeoutError:
-                    loader.stop('e',f"Port {dst_port} closed")
+                    loader.stop('e', f"Port {dst_port} is closed")
                     continue
                 except ConnectionRefusedError:
-                    loader.stop('e',f"Port {dst_port} closed")
+                    loader.stop('e', f"Port {dst_port} is closed")
                 except socket.gaierror:
                     loader.stop('e', "Invalid remote address")
                 except Exception as ex:
                     # print(ex)
                     # print(type(ex))
+                    loader.stop('e', "Process couldn't complete")
                     loader.stop('e', "Something went wrong")
                 else:
-
-                    loader.stop('s',f"Port {rmt_port} open")
                     Logging.success(f"Source address  : {src_ip}")
                     Logging.success(f"Remote address  : {rmt_ip} {dst_ip if not pattern.search(dst_ip) else ''} ")
+                    loader.stop('s', f"Port {rmt_port} is open")
 
                 print('')
                 if str(input("Press any key for try again or [0] Back  : ")) == "0":
