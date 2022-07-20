@@ -1,5 +1,6 @@
 import os
 import socket
+import sqlite3
 import subprocess
 import re
 import time
@@ -72,6 +73,51 @@ class Logging:
         print('\033[32m' + message + '\033[0m')
 
 
+class Dbase:
+
+    def __init__(self):
+        self.__conn = sqlite3.connect('asset/broad_db.db')
+        self.__query = None
+        self.__attrs = None
+
+    def select(self):
+        try:
+            __w = vars(self)['_Dbase__where']
+            self.__query = f'SELECT {self.__attrs} FROM {self.table} WHERE {self.__where}'
+        except:
+            self.__query = f'SELECT {self.__attrs} FROM {self.table}'
+        return self
+
+    def where(self, col, opr, val):
+        self.__where = f"{col} {opr} {val}"
+        return self
+
+    def get_one(self, *args):
+        try:
+            self.__attrs = '%s' % ','.join(map(str, args)) if len(args) != 0 else '*'
+            self.select()
+            cursor = self.__conn.cursor()
+            cursor.execute(self.__query)
+            records = cursor.fetchone()
+
+
+        except sqlite3.OperationalError as ex:
+            raise ex
+        except sqlite3.NameError as ex:
+            raise ex
+        except sqlite3.ValueError as ex:
+            raise ex
+        except sqlite3.IOError as ex:
+            raise ex
+        else:
+            cursor.close()
+            return records
+
+
+class Macvenders(Dbase):
+    table = "macvendors"
+
+
 class Utils:
     @staticmethod
     def banner():
@@ -80,7 +126,7 @@ class Utils:
         ▀█▀ █░█ █▀▀   █▄▄ █▀█ █▀█ ▄▀█ █▀▄   █▀▀ ▀▄▀ █▀█ █▀▀ █▀█ ▀█▀
         ░█░ █▀█ ██▄   █▄█ █▀▄ █▄█ █▀█ █▄▀   ██▄ █░█ █▀▀ ██▄ █▀▄ ░█░  From Ajtech
         \t\tFor Born Network Engineers 
-        \n\tDeveloper : Ajmal CP \t  Version : 1.5.0.190722.2025''')
+        \n\tDeveloper : Ajmal CP \t  Version : 1.5.1.200722.2311''')
         print('\n')
 
     @staticmethod
@@ -177,9 +223,10 @@ class Module():
 
             default_gateway = gateways['default'][netifaces.AF_INET][0]
             gateway_mac = Utils.getDevMac(default_gateway).strip()
-            vendor = Utils.req('get', f'http://api.macvendors.com/{gateway_mac[slice(6)]}')
+            macvenders = Macvenders()
+            vendor = macvenders.select().where('mac', '=', repr(gateway_mac[slice(6)])).get_one('vendor')
             if vendor:
-                vendor = vendor.text
+                vendor = vendor[0].rstrip()
             else:
                 vendor = ''
 
@@ -499,7 +546,6 @@ class Module():
                     Logging.success(f"Source address  : {src_ip}")
                     Logging.success(f"Remote address  : {rmt_ip} {dst_ip if not pattern.search(dst_ip) else ''} ")
 
-
                 print('')
                 if str(input("Press any key for try again or [0] Back  : ")) == "0":
                     break
@@ -521,6 +567,11 @@ class Module():
                     hex_re = re.compile(r'(?:[0-9a-fA-F]:?){6,12}')
                     cols = get_terminal_size((80, 20)).columns
                     mac = input("Enter MAC : ")
+                    if ":" in mac:
+                        mac = mac.replace(':', '')
+                    elif '.' in mac:
+                        mac = mac.replace('.', '')
+
                     if not len(mac) >= 6:
                         Logging.error('please provide minimum 6 characters')
                     elif not hex_re.search(mac):
@@ -530,9 +581,14 @@ class Module():
 
                 loader = Loader('Please wait ')
                 loader.start()
-                vendor = Utils.req('get', f'http://api.macvendors.com/{mac}')
+
+                mac = mac[0:6].upper()
+                macvenders = Macvenders()
+                vendor = macvenders.select().where('mac', 'LIKE', repr(mac)).get_one('vendor')
+                del macvenders
+
                 if vendor:
-                    vendor = vendor.text
+                    vendor = vendor[0].rstrip()
                 else:
                     vendor = "Couldn't find vendor"
 
@@ -541,10 +597,10 @@ class Module():
                 loader.stop('e', "Request couldn't complete")
             except requests.exceptions.ConnectionError as ex:
                 loader.stop('e', "Please check your internet connection")
-            except NoFound  as ex:
+            except NoFound as ex:
                 loader.stop('e', "Something went wrong")
             except Exception as ex:
-                loader.stop('e',str(ex))
+                loader.stop('e', str(ex))
                 # print(ex)
                 # print(type(ex))
             else:
@@ -558,6 +614,7 @@ class Module():
                     continue
             except KeyboardInterrupt:
                 pass
+
 
 class Manu():
 

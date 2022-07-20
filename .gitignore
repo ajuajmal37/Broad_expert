@@ -9,6 +9,7 @@ pyvenv.cfg
 .idea/
 __pycache__/
 the_broad_expert_trash
+trash
 .gitignore
 test.py
 dist/
